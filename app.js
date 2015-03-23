@@ -8,8 +8,6 @@ var _ = require('underscore'),
     express = require('express'),
     ffmpeg = require('fluent-ffmpeg'),
     through = require('through2'),
-    lame = require('lame'),
-    Speaker = require('speaker')
     Throttle = require('throttle'),
     Progress = require('progress');
 
@@ -19,9 +17,7 @@ var app = express();
 
 var clients = [];
 
-var stream = through(),
-    decoder = new lame.Decoder(),
-    speaker = new Speaker();
+var stream = through();
 
 var video = ytdl(uri, {
     filter: function(format) {
@@ -56,11 +52,11 @@ video.on('info', function(info) {
             clients.forEach(function(client) {
                 client.res.write(data);
             }); 
-        })
-        .pipe(decoder)
-        .pipe(speaker);
+        });
 
 });
+
+app.use('/', express.static(__dirname + '/client'));
 
 app.get('/stream', function(req, res) {
 
