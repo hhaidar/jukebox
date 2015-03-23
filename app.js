@@ -1,60 +1,24 @@
-/*
- * hehe
- */
+'use strict';
 
 var _ = require('underscore'),
     hat = require('hat'),
-    ytdl = require('ytdl-core'),
-    express = require('express'),
-    ffmpeg = require('fluent-ffmpeg'),
-    through = require('through2'),
-    Throttle = require('throttle'),
-    Progress = require('progress');
+    express = require('express');
 
-var uri = 'https://www.youtube.com/watch?v=N9XKLqGqwLA';
+var Core = require('./lib/core');
+
+var jukebox = new Core();
+
+jukebox.add('https://www.youtube.com/watch?v=WhUhe1X_Y-Q');
+jukebox.add('https://www.youtube.com/watch?v=DB1TJ-XVTQg');
+jukebox.add('https://www.youtube.com/watch?v=jzNazllJqlk');
+jukebox.add('https://www.youtube.com/watch?v=fVH1tMdg56Q');
+jukebox.add('https://www.youtube.com/watch?v=9LrkTrFDlew');
+
+jukebox.play('https://www.youtube.com/watch?v=9LrkTrFDlew');
+
+// jukebox.play('https://www.youtube.com/watch?v=4Jx6siXBe6Y');
 
 var app = express();
-
-var clients = [];
-
-var stream = through();
-
-var video = ytdl(uri, {
-    filter: function(format) {
-        return format.container === 'mp4';
-    },
-    quality: 'highest'
-});
-
-var mp3 = new ffmpeg({
-    source: video
-}).toFormat('mp3');
-
-video.on('info', function(info) {
-
-    var bar = new Progress(info.title + ' [:bar] :current / :total', {
-        total: parseInt(info.length_seconds),
-        width: 50
-    });
-    
-    var timer = setInterval(function(){
-        bar.tick();
-        if (bar.complete) {
-            clearInterval(timer);
-        }
-    }, 1 * 1000);
-
-    mp3.writeToStream(stream);
-
-    stream
-        .pipe(new Throttle((128000 / 10) * 1.3))
-        .on('data', function(data) {
-            clients.forEach(function(client) {
-                client.res.write(data);
-            }); 
-        });
-
-});
 
 app.use('/', express.static(__dirname + '/client'));
 
@@ -68,14 +32,14 @@ app.get('/stream', function(req, res) {
         'Transfer-Encoding': 'identity'
     });
 
-    clients.push({
+    jukebox.clients.push({
         id: id,
         req: req,
         res: res
     });
 
     req.connection.on('close', function(){
-        clients = _.without(clients, _.findWhere(clients, {
+        jukebox.clients = _.without(jukebox.clients, _.findWhere(jukebox.clients, {
             id: id
         }));
     });
